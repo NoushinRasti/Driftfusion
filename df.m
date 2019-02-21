@@ -406,12 +406,12 @@ sol = pdepe(par.m,@pdex4pde,@pdex4ic,@pdex4bc,x,t,options);
                 
                 pr = [par.sn_r*(ur(1) - nright);
                     par.sp_r*(ur(2) - pright);
-                    0;
+                    ur(3)-dev.Nion(end);
                     -ur(4)+Vbi-par.Vapp+Vres;];
                 
                 qr = [1;
                     1;
-                    1;
+                    0;
                     0];
                 
             end
