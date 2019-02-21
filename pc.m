@@ -39,12 +39,12 @@ classdef pc
         % are inserted automatically between each layer with a width
         % defined by the property DINT and number of points defined by
         % PINT.
-        dcell = {{50e-7}; {30e-7, 450e-7, 30e-7}; {60e-7}};         % Layer and subsection thickness array  
-        pcell = {{50}; {30, 225, 30}; {60}};                          % Number of points in layers and subsections array  
+        dcell = {{90e-7}; {10e-7}; {100e-7, 2000e-7}};         % Layer and subsection thickness array
+        pcell = {{180}; {20}; {100, 100}};                          % Number of points in layers and subsections array  
         dint = 2e-7;        % Interfacial region thickness (x_mesh_type = 3)
         pint = 20;          % Interfacial points (x_mesh_type = 3)
         
-        % Define spatial cordinate system- typically this will be kept at
+        % Define spatial coordinate system- typically this will be kept at
         % 0 for most applications
         % m=0 cartesian
         % m=1 cylindrical polar coordinates
@@ -61,34 +61,35 @@ classdef pc
         % are read out and so does not influence convergence. Defining an
         % unecessarily high number of points however can be expensive owing
         % to interpolation of the solution.
-        tmesh_type = 2;             % Mesh type- for use with meshgen_t
         t0 = 1e-16;                 % Initial log mesh time value
-        tmax = 1e-12;               % Max time value
+        tmax = 1e-8;               % Max time value
         tpoints = 100;              % Number of time points
+        tmesh_type = 2;             % Mesh type- for use with meshgen_t, 2 is log, 1 is linear
         
         %% GENERAL CONTROL PARAMETERS
-        OC = 0;                 % Closed circuit = 0, Open Circuit = 1
+        OC = 0;                 % Closed circuit = 0, Open Circuit = 1, obsolete, use series resistance
         Int = 0;                % Bias Light intensity (Suns Eq.)
-        pulseon = 0;            % Switch pulse on TPC or TPV
+        pulseon = 0;            % Switch pulse on TPC or TPV, might not work now, pulsed light
         Vapp = 0;               % Applied bias
         BC = 3;                 % Boundary Conditions. Must be set to one for first solution
         figson = 1;             % Toggle figures on/off
         meshx_figon = 0;        % Toggles x-mesh figures on/off
         mesht_figon = 0;        % Toggles t-mesh figures on/off
-        side = 1;               % illumination side 1 = EE, 2 = SE
+        side = 1;               % illumination side 1 = EE, 2 = SE, doesn't work now
         calcJ = 0;              % Calculates Currents- slows down solving calcJ = 1, calculates DD currents at every position
         mobset = 1;             % Switch on/off electron hole mobility- MUST BE SET TO ZERO FOR INITIAL SOLUTION
-        mobseti = 1;
-        SRHset = 1;
-        JV = 0;                 % Toggle run JV scan on/off
-        Ana = 1;                % Toggle on/off analysis
-        stats = 'Boltz';        % 'Fermi' = Fermi-Dirac, % 'Boltz' = Boltzmann statistics
+        mobseti = 1;            % Ion mobility
+        SRHset = 1;             % Schottky rehor recombination
+        JV = 0;                 % Toggle run JV scan on/off, 0 no change, 1 linear, 2 custom, voltage function type
+        CA = 0;                 % Toggle run CA scan on/off, 0 no change, 1 linear
+        Ana = 1;                % Toggle on/off analysis, speeds up if off
+        stats = 'Boltz';        % 'Fermi' = Fermi-Dirac (Slow), % 'Boltz' = Boltzmann statistics <---- only this works now
         
         %% OM = Optical Model
         % Uniform generation uses 
         % 0 = Uniform Generation
-        % 1 = Beer Lambert
-        OM = 1;
+        % 1 = Beer Lambert, recently fixed by Phil
+        OM = 0;
         
         %%%%%%%%%%% LAYER MATERIAL PROPERTIES %%%%%%%%%%%%%%%%%%%%
         % Numerical values should be given as a row vector with the number of 
@@ -98,86 +99,99 @@ classdef pc
         % Currently STACK is used for reading the optical properties
         % library. The names here do not influence the electrical properties of the
         % device. See INDEX OF REFRACTION LIBRARY for choices- names must be enetered 
-        % exactly as given in the column headings with the '_n', '_k' omitted
-        stack = {'PEDOT', 'MAPICl', 'PCBM'}
+        % exactly as given in the column headings with the '_n', '_k'
+        % omitted, example for Beer lambert, otherwise simply strings
+        stack = {'WO3', 'Surface', 'Water'}
         
-        %% Energy levels [eV] 
-        EA = [-3.0, -3.8, -3.8];           % Electron affinity
-        IP = [-5.1, -5.4, -6.2];           % Ionisation potential
-        % PCBM: Sigma Aldrich https://www.sigmaaldrich.com/technical-documents/articles/materials-science/organic-electronics/pcbm-n-type-semiconductors.html 
+        %% Energy levels [eV]
+        EA = [-4.5, -4.5, -4.5];           % Electron affinity
+        IP = [-7.1, -7.1, -7.1];           % Ionisation potential
+        %EA = [-5.0, -4.49, -4.75];           % Electron affinity
+        %IP = [-8.8, -7.12, -7.25];           % Ionisation potential
+        % FTO: Lu 2011 J. Vacuum Sci. Tech. https://avs.scitation.org/doi/abs/10.1116/1.3525641
+        % WO3: Wang 2016 Chem. Commun. https://pubs.rsc.org/en/content/articlehtml/2016/cc/c5cc07613g
+        % BiVO4: Sharp 2014 Chem. Mater. https://pubs.acs.org/doi/abs/10.1021/cm5025074
         
         %% Equilibrium Fermi energies [eV]
         % These define the doping density in each layer- see NA and ND calculations in methods         
-        E0 = [-5.0, -4.6, -3.9];   
-        
+        E0 = [-5.8, -5.8, -5.8]; 
+        %E0 = [-5.1, -5.8, -5.25];   
+        % FTO: Lu 2011 J. Vacuum Sci. Tech. https://avs.scitation.org/doi/abs/10.1116/1.3525641
+        % WO3: Wang 2016 Chem. Commun. https://pubs.rsc.org/en/content/articlehtml/2016/cc/c5cc07613g
+        % BiVO4: Sharp 2014 Chem. Mater. https://pubs.acs.org/doi/abs/10.1021/cm5025074
+         
         %% SRH trap energies [eV]
         % These must exist within the energy gap of the appropriate layers
         % and define the variables PT and NT in the expression:
         % U = (np-ni^2)/(taun(p+pt) +taup(n+nt))
-        Et_bulk =[-4.05, -4.6, -5.0];
+        Et_bulk =[-6.0, -6.0, -6.0];
+        %DOI: 10.1021/jacs.8b08852 traps close-by under the fermi level
         
         %% Electrode Fermi energies [eV]
-        % Fermi energies of the metal electrode. These define the built-in voltage, Vbi 
+        % Fermi energies of the metal electrode. These define the bu  ilt-in voltage, Vbi 
         % and the boundary carrier concentrations nleft, pleft, nright, and 
         % pright
-        PhiA = -5.0;
-        PhiC = -3.9;
+        PhiA = -5.36;   %Pt
+        PhiC = -5.8;  % FTO   DOI: 10.1039/B915235K
+        %PhiA = -5.36;   % Pt E_F: http://elektroarsenal.net/fermi-energy-significance.html
+        %PhiC = -5.05;    % Water half of -4.44 and -5.67
         
         %% Effective Density Of States (eDOS) [cm-3]
-        N0 = [1e19, 1e19, 1e19];
-        % PEDOT eDOS: https://aip.scitation.org/doi/10.1063/1.4824104
-        % MAPI eDOS: F. Brivio, K. T. Butler, A. Walsh and M. van Schilfgaarde, Phys. Rev. B, 2014, 89, 155204.
-        % PCBM eDOS:
+        N0 = [1e19, 1e19, 1e19]; % can't be 0
+        % WO3 
+        % Assume same for holes and electrons, reality is not
         
-        %% Mobile ions
+        %% Mobile ions  % in my case: H(+) so only in electrolyte
         % Mobile ion defect density [cm-3] 
-        Nion = [0, 1e18, 0];                            % A. Walsh et al. Angewandte Chemie, 2015, 127, 1811.     
-        % Approximate density of iodide sites [cm-3]
-        % Limits the density of iodide vancancies
-        DOSion = [1e-6, 1.21e22, 1e-6];                 % P. Calado thesis           
+        Nion = [0, 0, 1e9];                          
+        DOSion = [1e-10, 1e-10, 1e20];                 % P. Calado thesis, can't be zero        
+        % 0.1 M H2SO4
         
         %% Mobilities   [cm2V-1s-1]
-        mue = [0.01, 20, 1e-3];         % electron mobility 
-        muh = [0.01, 20, 1e-3];         % hole mobility
+        mue = [10, 10, 1e-6];         % electron mobility 
+        muh = [10, 10, 1e-6];         % hole mobility
         
-        muion = [0, 1e-10, 0];          % ion mobility
-        % PTPD h+ mobility: https://pubs.rsc.org/en/content/articlehtml/2014/ra/c4ra05564k
-        % PEDOT mue = 0.01 cm2V-1s-1 https://aip.scitation.org/doi/10.1063/1.4824104
-        % TiO2 mue = 0.09 cm2V-1s-1 Bak2008
-        % Spiro muh = 0.02 cm2V-1s-1 Hawash2018
+        muion = [0, 0, 10];          % ion mobility
+        % FTO h+ mobility = 20  https://tel.archives-ouvertes.fr/tel-01689976/document 
+        % WO3 mue = 1.2 https://www.sciencedirect.com/science/article/pii/S0040609099005672
+        % Mo:BiVO4 mue = 0.2 https://pubs.acs.org/doi/abs/10.1021/ja405550k
         
         %% Relative dielectric constants
-        epp = [4, 23, 4];    
+        epp = [20, 20, 80];    
                 
-        %% Uniform generation rate [cm-3s-1]
-        G0 = [0, 2.6409e+21, 0];        % Approximate Uniform generation rate @ 1 Sun for 510 nm active layer thickness
+        %% Uniform generation rate [cm-3s-1] of electrons and holes
+        G0 = [5e+20, 5e+20, 0];  
+        %G0 = [1.6409e+21, 1.6409e+21, 0];        % Approximate Uniform generation rate @ 1 Sun for 510 nm active layer thickness
         
         %% Recombination
         % Radiative recombination, U = k(np - ni^2)
         % [cm3 s-1] Radiative Recombination coefficient
-        krad = [6.3e-11, 3.6e-12, 6.8e-11];
+        krad = [5e-11, 5e-11, 4e-12];
         
         %% Bulk SRH time constants for each layer [s]
-        taun_bulk = [1e-6, 1e-7, 1e-6];           % [s] SRH time constant for electrons
-        taup_bulk = [1e-6, 1e-7, 1e-6];           % [s] SRH time constant for holes   
+        taun_bulk = [1e-6, 1e-6, 1e-6];           %cannot be zero, choose a very small number for electrolyte
+        taup_bulk = [1e-6, 1e-6, 1e-6];        %Shotckey-Read-Hall recombination at traps
+        %taun_bulk = [1e-6, 1e-6, 1e-6];           % [s] SRH time constant for electrons, hard to get data on these
+        %taup_bulk = [1e-6, 1e-6, 1e-6];           % [s] SRH time constant for holes, mid numbers could be 1e-7
         
         %% Interfacial SRH time constants [s]
-        % Must be a row vector of length (number of layers)-1  
-        taun_inter = [1e-13, 1e-6];
-        taup_inter = [1e-13, 1e-6];
+        % Must be a row vector of length (number of layers)-1, 2 of them  
+        taun_inter = [1e-3, 1e-3];
+        taup_inter = [1e-3, 1e-3];
 
-        %% Surface recombination and extraction coefficients [cm s-1]
-        % Descriptions given in the comments considering that holes are
-        % extracted at left boundary, electrons at right boundary
-        sn_l = 1e7;     % electron surface recombination velocity left boundary
-        sn_r = 1e7;     % electron extraction velocity right boundary
-        sp_l = 1e7;     % hole extraction left boundary         
-        sp_r = 1e7;     % hole surface recombination velocity right boundary
-        
-        %% Series resistance
+        %% Surface recombination (velocity) and extraction coefficients [cm s-1]
+        % Descriptions given in the comments
+        sn_l = 1e7;    %electrons out at left
+        sn_r = 1e7;     %electrons recombine at right
+        sp_l = 1e7;     %holes recombine at left
+        sp_r = 1e7;      % holes out at right
+        %sn_l = 1e8;     % electron surface recombination velocity left boundary, infinite
+        %sn_r = 1e8;     % electron extraction velocity right boundary, (blocking contact, smaller)
+        %sp_l = 1e8;     % hole extraction left boundary         
+        %sp_r = 1e8;     % hole surface recombination velocity right boundary
         Rs = 0;
-              
-        %% Defect recombination rate coefficient
+        
+        %% Defect recombination rate coefficient, rate in relation to ionic density
         % Currently not used
         k_defect_p = 0;
         k_defect_n = 0;
@@ -185,15 +199,20 @@ classdef pc
         %% Pulse settings
         laserlambda = 638;      % Pulse wavelength (Beer-Lambert and Transfer Matrix)
         pulselen = 1e-6;        % Transient pulse length
-        pulsepow = 10;          % Pulse power [mW cm-2] OM2 (Beer-Lambert and Transfer Matrix only)
+        pulsepow = 10;          % Pulse power [mW cm-2] OM2 (Beer-Lambert and Transfer Matrix only) exponential decay
         pulsestart = 1e-7;      % Time recorded prior to pulse
-        pulseint = 0.1;         % Pulse intensity (when using uniform generation)
+        pulseint = 0.1;         % Pulse intensity (when using uniform generation)linear increase in generation
         
         %% Current voltage scan parameters
         Vstart = 0;             % Initial scan point
-        Vend = 1.2;             % Final scan point
-        JVscan_rate = 1;        % JV scan rate (Vs-1)
-        JVscan_pnts = 100;      % JV scan points
+        Vend = 2;             % Final scan point
+        JVscan_rate = 0.05;        % JV scan rate (Vs-1)
+        JVscan_pnts = 200;      % JV scan points
+        
+        %% Chronoamperometry scan parameters
+        applied_voltage = 1.23;
+        time = 100;
+        CAscan_pnts = 200;      % CA scan points
         
         %% Dynamically created variables
         genspace = [];
@@ -206,7 +225,7 @@ classdef pc
      
         % Define the default relative tolerance for the pdepe solver
         % 1e-3 is the default, can be decreased if more precision is needed
-        % Solver options
+        % Solver options, like an error, whether it fails or not
         RelTol = 1e-3;
         AbsTol = 1e-6;
         
