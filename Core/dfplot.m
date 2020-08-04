@@ -98,7 +98,7 @@ classdef dfplot
                 Vapp.dk.r = dfana.calcVapp(JV.dk.r);
                 
                 figure(4)
-                plot(Vapp.dk.f, J.dk.f.tot(:,end), '--', Vapp.dk.r, J.dk.r.tot(:,end));
+                plot(Vapp.dk.f, J.dk.f.tot(:,end), Vapp.dk.r, J.dk.r.tot(:,end));
                 hold on
             end
             
